@@ -274,8 +274,9 @@ FRONTEND_FLAG = " -DHOST_FRONTEND_SDL=1" if SDL2 else " -DHOST_FRONTEND_NONE=1" 
 SDL_CFLAGS = " ".join(f"-I{d}" for d in SDL2_DIRS) + ("" if WIN else " -Imodern/host/x11shim") if SDL2 else ""
 SDL_LIBS = "-l:libSDL2-2.0.so.0" if SDL2 else ""
 if WIN_SDL:
-    # (the import library: SDL2.dll is loaded at run time, from beside acww.exe)
-    SDL_LIBS = f"-L{shlex.quote(WIN_SDL[1])} -lSDL2"
+    # (the import library by its full name, not -lSDL2: the link has -static, which would take libSDL2.a, the static
+    # SDL2 that needs gdi32, ole32, oleaut32... SDL2.dll is loaded at run time, from beside acww.exe)
+    SDL_LIBS = shlex.quote(f"{WIN_SDL[1]}/libSDL2.dll.a")
 if MAC and SDL2:
     SDL_LIBS = subprocess.run(["pkg-config", "--libs", "sdl2"], capture_output=True, text=True).stdout.strip() or "-lSDL2"
 if MAC:
