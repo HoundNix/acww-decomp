@@ -1,0 +1,53 @@
+name: Windows exe (SDL2 window)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Tools (ninja, python)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build python3-pip xz-utils
+          pip install --break-system-packages ninja_syntax || true
+
+      - name: llvm-mingw (newest release, UCRT, Linux host)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p ~/acww/toolchains
+          cd ~/acww/toolchains
+          gh release download --repo mstorsjo/llvm-mingw \
+            --pattern 'llvm-mingw-*-ucrt-ubuntu-*-x86_64.tar.xz'
+          tar xf llvm-mingw-*.tar.xz
+          ls
+
+      - name: SDL2 development package for MinGW
+        run: |
+          cd ~/acww/toolchains
+          curl -fL -o sdl2.tar.gz \
+            https://github.com/libsdl-org/SDL/releases/download/release-2.30.9/SDL2-devel-2.30.9-mingw.tar.gz
+          tar xf sdl2.tar.gz
+          ls
+
+      - name: Configure
+        run: python3 tools/configure_host.py --arch x86_64 --os windows
+
+      - name: Build
+        run: ninja -f build_host_win64.ninja
+
+      - name: Package
+        run: |
+          mkdir -p dist
+          cp build/hostwin64_usa/acww.exe build/hostwin64_usa/SDL2.dll dist/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: acww-windows-x64
+          path: dist/
